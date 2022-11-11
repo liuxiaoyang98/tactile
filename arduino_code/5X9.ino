@@ -1,11 +1,4 @@
 /*5x9测试程序*/
-
-#define A0 1
-#define A1 2
-#define A2 4
-#define A3 5
-#define A4 6
-
 #define Y1  22
 #define Y2  21
 #define P19 20
@@ -19,7 +12,8 @@
 #define CS 10
 #define Y0 37
 #define LED_CE 5  
-uint16_t adc[6];
+uint8_t adc[6]={A0,A1,A2,A3,A4};
+uint8_t io[10]={Y1,Y2,P19,P18,P9,P10,P8,P7,P6};
 uint16_t gpio[10][6];
 
 //void sel_x(uint8_t x){
@@ -35,28 +29,26 @@ uint16_t gpio[10][6];
 //  digitalWrite(YA3, (y >> 3) & 1);
 //}
 void get_adc(uint8_t pin) {
-  digitalWrite(CS,LOW);
   delayMicroseconds(50);
   uint16_t ret[6];
   
   uint16_t Max=0,Min=0xffff,sum=0;
   
-  for (uint8_t i=1;i<6;i++){
+  for (uint8_t i=0;i<5;i++){
     for(uint8_t i0=0;i0<6;i++){//测5次取平均
-      uint16_t temp=analogRead(i);
+      uint16_t temp=analogRead(adc[i]);
       sum=sum+temp;
       if(Max<temp)Max=temp;
       if(Min>temp)Min=temp;
     }
     gpio[pin][i]=(sum-Max-Min)/3;
   }
-  digitalWrite(CS,HIGH);
 }
 
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
-  pinMode(LED_CE,OUTPUT);
+//  pinMode(LED_CE,OUTPUT);
 //  pinMode(A0,OUTPUT);
 //  pinMode(A1,OUTPUT);
 //  pinMode(A2,OUTPUT);
@@ -76,21 +68,20 @@ void setup() {
   digitalWrite(Y0,LOW);
 }
 void loop() {
-uint32_t addc=0;
   // put your main code here, to run repeatedly:
   delay(1000);
   //digitalWrite(Y0,HIGH);
-  uint8_t io[10]={22,21,20,19,18,17,16,13,12};
   for(uint8_t i=0;i<9;i++){
     pinMode(io[i],OUTPUT);
     digitalWrite(io[i],HIGH);
     get_adc(i);
+    pinMode(io[i],INPUT);
   }
-  for(uint8_t i=0;i<6;i++)
+  for(uint8_t i=0;i<6;i++){
       for(uint8_t i0=0;i<10;i++)
         Serial.print(gpio[i][i0]);
-  
+      Serial.println();
+  }
   
   digitalWrite(Y0,LOW);
-  Serial.printf("=======%ld\r\n",addc);
 }

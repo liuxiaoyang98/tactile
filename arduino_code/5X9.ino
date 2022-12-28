@@ -8,9 +8,6 @@
 #include <ArduinoOTA.h>
 #include <Ticker.h>
 
-
-#define CS 10
-#define Y0 3
 //RX-io20
 //TX-io21
 Ticker ticker_getadc;

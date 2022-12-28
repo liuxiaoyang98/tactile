@@ -7,15 +7,12 @@
 #include <WiFiUdp.h>
 #include <ArduinoOTA.h>
 #include <Ticker.h>
-
 //RX-io20
 //TX-io21
 Ticker ticker_getadc;
 WiFiClient client;
 WebServer server(80);
 bool conn=false;
-
-
 uint16_t gpio[10][6];
 uint16_t io[10]={19,18,9,10,6,7,8,20,21};
 int iocount=9;
@@ -25,28 +22,21 @@ const int httpPort = 8801;
 //8801 131 left
 //8802 103 right
 const char* host = "192.168.43.29"; // 网络服务器地址
-
-
 int setupserver() {
-
   // Connect to WiFi network
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
 //  Serial.println("");
-
   // Wait for connection
   while (WiFi.waitForConnectResult() != WL_CONNECTED) {
 //    Serial.println("Connection Failed! Rebooting...");
     delay(5000);
     ESP.restart();
   }
-
-
 //  Serial.println("");
 //  Serial.println("WiFi connected");
 //  Serial.println("IP address: ");
 //  Serial.println(WiFi.localIP());
-
   ArduinoOTA
     .onStart([]() {
       String type;
@@ -65,7 +55,7 @@ int setupserver() {
 //      Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
     })
     .onError([](ota_error_t error) {
-      Serial.printf("Error[%u]: ", error);
+//      Serial.printf("Error[%u]: ", error);
 //      if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
 //      else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
 //      else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
@@ -90,39 +80,27 @@ int setupserver() {
 //  Serial.print("Connecting to");
 //  Serial.println(host);
   return 0;
-
 }
 
-
 void get_adc() {
-  
   uint16_t ret[6];
-  
   for(uint8_t pin=0;pin<iocount;pin++){
-
     pinMode(io[pin],OUTPUT);
     digitalWrite(io[pin],HIGH);
-    
- 
-
-    
-      for (uint8_t i=0;i<5;i++){//5个adc
-        uint16_t Max=0,Min=0xffff,sum=0;
-        for(uint8_t i0=1;i0<6;i0++){//测5次取平均
-          uint16_t temp=analogRead(i);
-          sum=sum+temp;
-          if(Max<temp)Max=temp;
-          if(Min>temp)Min=temp;
-        }
+    for (uint8_t i=0;i<5;i++){//5个adc
+      uint16_t Max=0,Min=0xffff,sum=0;
+      for(uint8_t i0=1;i0<6;i0++){//测5次取平均
+        uint16_t temp=analogRead(i);
+        sum=sum+temp;
+        if(Max<temp)Max=temp;
+        if(Min>temp)Min=temp;
+      }
     gpio[pin][i]=(sum-Max-Min)/3;
     }
     digitalWrite(io[pin],LOW);
     pinMode(io[pin],INPUT);
   }
-
 }
-
-
 void sampling(){
     client.println();
   get_adc();
@@ -135,16 +113,9 @@ void sampling(){
       if(i0<4)client.print(",");
     }
   }
-  
 }
-
 void setup() {
-  
-  analogSetAttenuation(ADC_2_5db);
-  Serial.end();
-  Serial.begin(115200);
-
-    
+  analogSetAttenuation(ADC_2_5db);    
   pinMode(5,OUTPUT);digitalWrite(5,HIGH);//for OTA
   
   int stat = setupserver();

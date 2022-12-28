@@ -1,124 +1,188 @@
 /*5x9测试程序*/
-#define Y1  22
-#define Y2  21
-#define P19 20
-#define P18 19
+#include <WiFi.h>
+#include <WiFiClient.h>
+#include <WebServer.h>
+#include <ESPmDNS.h>
+#include <Update.h>
+#include <WiFiUdp.h>
+#include <ArduinoOTA.h>
+#include <Ticker.h>
 
-#define P9  18
-#define P10 17
-#define P8  16
-#define P7  13
-#define P6  12
 
 #define CS 10
-#define Y0 37
-#define LED_CE 5  
-uint8_t adc[6]={A0,A1,A2,A3,A4};
-uint8_t io[10]={Y1,Y2,P19,P18,P9,P10,P8,P7,P6};
+#define Y0 3
+//RX-io20
+//TX-io21
+Ticker ticker_getadc;
+WiFiClient client;
+WebServer server(80);
+bool conn=false;
+
+
 uint16_t gpio[10][6];
+uint16_t io[10]={19,18,9,10,6,7,8,20,21};
+int iocount=9;
+const char* ssid     = "Pixel_8008";
+const char* password = "lkjh123123";
+const int httpPort = 8801;
+//8801 131 left
+//8802 103 right
+const char* host = "192.168.43.29"; // 网络服务器地址
+
+
+int setupserver() {
+
+  // Connect to WiFi network
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+//  Serial.println("");
+
+  // Wait for connection
+  while (WiFi.waitForConnectResult() != WL_CONNECTED) {
+//    Serial.println("Connection Failed! Rebooting...");
+    delay(5000);
+    ESP.restart();
+  }
+
+
+//  Serial.println("");
+//  Serial.println("WiFi connected");
+//  Serial.println("IP address: ");
+//  Serial.println(WiFi.localIP());
+
+  ArduinoOTA
+    .onStart([]() {
+      String type;
+      if (ArduinoOTA.getCommand() == U_FLASH)
+        type = "sketch";
+      else // U_SPIFFS
+        type = "filesystem";
+
+      // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
+//      Serial.println("Start updating " + type);
+    })
+    .onEnd([]() {
+//      Serial.println("\nEnd");
+    })
+    .onProgress([](unsigned int progress, unsigned int total) {
+//      Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+    })
+    .onError([](ota_error_t error) {
+      Serial.printf("Error[%u]: ", error);
+//      if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
+//      else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
+//      else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
+//      else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
+//      else if (error == OTA_END_ERROR) Serial.println("End Failed");
+    });
+
+  ArduinoOTA.begin();
+
+//  Serial.println("Ready");
+//  Serial.print("IP address: ");
+//  Serial.println(WiFi.localIP());
+
+  
+  if(!client.connect(host,httpPort)){//连接失败
+//    Serial.println("connection failed");
+//    Serial.println(WiFi.localIP());
+    delay(5000);
+    return 1;
+  }
+  client.print("9999");
+//  Serial.print("Connecting to");
+//  Serial.println(host);
+  return 0;
+
+}
+
 
 void get_adc() {
-  Serial.print("good");
-//  delayMicroseconds(50);
-//  
-//  uint16_t ret[6];
-//  
-//  for(uint8_t pin=0;pin<9;pin++){//9个gpio
-//
-//    pinMode(io[pin],OUTPUT);
-//    digitalWrite(io[pin],HIGH);
-//    
-//    uint16_t Max=0,Min=0xffff,sum=0;
-//
-//    
-//      for (uint8_t i=0;i<5;i++){//5个adc
-//        for(uint8_t i0=1;i0<6;i++){//测5次取平均
-//          uint16_t temp=analogRead(adc[i]);
-//          sum=sum+temp;
-//          if(Max<temp)Max=temp;
-//          if(Min>temp)Min=temp;
-//        }
-//    gpio[pin][i]=(sum-Max-Min)/3;
-//    }
-//
-//    
-//    pinMode(io[pin],INPUT);
-//  }
-
-}
-
-void setup() {
-  Serial.end();
-  // put your setup code here, to run once:
-  Serial.begin(115200);
-//  pinMode(LED_CE,OUTPUT);
-//  pinMode(A0,OUTPUT);
-//  pinMode(A1,OUTPUT);
-//  pinMode(A2,OUTPUT);
-//  pinMode(A3,OUTPUT);
-//  pinMode(A4,OUTPUT);
   
-  Serial.print("1good");
-  pinMode(22,INPUT);//good
-//  pinMode(21,INPUT);//TX不管它
-  pinMode(P19,INPUT);//good
-  pinMode(P18,INPUT); //good
-
+  digitalWrite(Y0,HIGH);
   
-//  pinMode(P10,INPUT);//代码通过之后到loop()就断了
-  pinMode(P9,INPUT);//good
-//  pinMode(P8,INPUT);//代码走到这里就断了
-//  pinMode(P7,INPUT);//代码走到这里就断了
-//  pinMode(P6,INPUT);//代码通过之后到loop()就断了
-
-  Serial.print("2good"); 
-  Serial.println(""); 
-//
-//  
-//  pinMode(CS,OUTPUT);
-//  pinMode(Y0,OUTPUT);
-//  digitalWrite(CS,HIGH); //disable out
-//  digitalWrite(Y0,LOW);
-}
-void loop() {
-  // put your main code here, to run repeatedly:
-  delay(1000);
-  //digitalWrite(Y0,HIGH);
+  uint16_t ret[6];
   
-  Serial.print("loop");
-  get_adc();
+  for(uint8_t pin=0;pin<iocount;pin++){
 
-//2 3 5
-
-int lop[]={2,3,5};
-for(int pin=0;pin<3;pin++){
     pinMode(io[pin],OUTPUT);
     digitalWrite(io[pin],HIGH);
     
-    uint16_t Max=0,Min=0xffff,sum=0;
+ 
 
     
       for (uint8_t i=0;i<5;i++){//5个adc
-        for(uint8_t i0=1;i0<6;i++){//测5次取平均
-          uint16_t temp=analogRead(adc[i]);
+        uint16_t Max=0,Min=0xffff,sum=0;
+        for(uint8_t i0=1;i0<6;i0++){//测5次取平均
+          uint16_t temp=analogRead(i);
           sum=sum+temp;
           if(Max<temp)Max=temp;
           if(Min>temp)Min=temp;
         }
-    gpio[lop][i]=(sum-Max-Min)/3;
+    gpio[pin][i]=(sum-Max-Min)/3;
     }
+    pinMode(io[pin],INPUT);
+  }
+
+  digitalWrite(Y0,LOW);
+}
+
+
+void sampling(){
+    client.println();
+  get_adc();
+  for(int i=0;i<iocount;i++){
+    client.println();
+    for(int i0=0;i0<5;i0++){
+      client.print(i);
+      client.print(",");
+      client.print(gpio[i][i0]);
+      if(i0<4)client.print(",");
+    }
+  }
+  
+}
+
+void setup() {
+  
+  analogSetAttenuation(ADC_2_5db);
+  Serial.end();
+  Serial.begin(115200);
 
     
-    pinMode(io[pin],INPUT);
-}
+  pinMode(5,OUTPUT);digitalWrite(5,HIGH);//for OTA
+  
+  int stat = setupserver();
+  if(stat == 1)return;else conn=true;
+  
+  pinMode(19,INPUT);pinMode(18,INPUT);
+  
+  pinMode(9,INPUT);pinMode(10,INPUT);
+  //pinMode(20,INPUT);pinMode(21,INPUT);
+  pinMode(8,INPUT);pinMode(6,INPUT);pinMode(7,INPUT);
+
   
 
-//  
-//  for(uint8_t i=0;i<6;i++){//display
-//      for(uint8_t i0=0;i0<10;i0++)
-//        Serial.print(gpio[i][i0]);
-//      Serial.println();
-//  }
+//  pinMode(CS,OUTPUT);pinMode(Y0,OUTPUT);digitalWrite(CS,HIGH);digitalWrite(Y0,LOW);
+
   
-//  digitalWrite(Y0,LOW);
+  //if(conn==true)ticker_getadc.attach_ms(1000/25,sampling);//125Hzsampling rate
+
+
+
+  
+} 
+
+bool ticker1=false;
+bool ticker2=false;
+void loop() {
+  delay(1);
+  if(millis()<15000) ArduinoOTA.handle();
+  else{
+    ticker1=true;
+  }
+  if(ticker1==true&&ticker2!=true){
+    ticker_getadc.attach_ms(1000/125,sampling);
+    ticker2=true;
+  }
 }

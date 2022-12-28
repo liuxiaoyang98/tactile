@@ -99,8 +99,6 @@ int setupserver() {
 
 void get_adc() {
   
-  digitalWrite(Y0,HIGH);
-  
   uint16_t ret[6];
   
   for(uint8_t pin=0;pin<iocount;pin++){
@@ -121,10 +119,10 @@ void get_adc() {
         }
     gpio[pin][i]=(sum-Max-Min)/3;
     }
+    digitalWrite(io[pin],LOW);
     pinMode(io[pin],INPUT);
   }
 
-  digitalWrite(Y0,LOW);
 }
 
 
@@ -153,6 +151,7 @@ void setup() {
   pinMode(5,OUTPUT);digitalWrite(5,HIGH);//for OTA
   
   int stat = setupserver();
+  wifi_set_sleep_type(LIGHT_SLEEP_T);
   if(stat == 1)return;else conn=true;
   
   pinMode(19,INPUT);pinMode(18,INPUT);
@@ -160,23 +159,13 @@ void setup() {
   pinMode(9,INPUT);pinMode(10,INPUT);
   //pinMode(20,INPUT);pinMode(21,INPUT);
   pinMode(8,INPUT);pinMode(6,INPUT);pinMode(7,INPUT);
-
-  
-
-//  pinMode(CS,OUTPUT);pinMode(Y0,OUTPUT);digitalWrite(CS,HIGH);digitalWrite(Y0,LOW);
-
-  
-  //if(conn==true)ticker_getadc.attach_ms(1000/25,sampling);//125Hzsampling rate
-
-
-
-  
+//  pinMode(CS,OUTPUT);pinMode(Y0,OUTPUT);digitalWrite(CS,HIGH);digitalWrite(Y0,LOW);  
+//if(conn==true)ticker_getadc.attach_ms(1000/25,sampling);//125Hzsampling rate
 } 
 
 bool ticker1=false;
 bool ticker2=false;
 void loop() {
-  delay(1);
   if(millis()<15000) ArduinoOTA.handle();
   else{
     ticker1=true;

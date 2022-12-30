@@ -1,4 +1,5 @@
 /*5x9测试程序*/
+
 #include <WiFi.h>
 #include <WiFiClient.h>
 #include <WebServer.h>
@@ -9,8 +10,6 @@
 #include <Ticker.h>
 
 
-#define CS 10
-#define Y0 3
 //RX-io20
 //TX-io21
 Ticker ticker_getadc;
@@ -20,8 +19,8 @@ bool conn = false;
 
 
 uint16_t gpio[10][6];
-uint16_t io[10] = {19, 18, 9, 10, 6, 7, 8, 20, 21};
-int iocount = 9;
+uint8_t io[] = {19, 18, 9, 10, 6, 7, 8, 20, 21};
+uint8_t iocount = sizeof(io);
 const char* ssid     = "Pixel_8008";
 const char* password = "lkjh123123";
 const int httpPort = 8802;
@@ -59,20 +58,6 @@ int setupserver() {
     // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
     //      Serial.println("Start updating " + type);
   })
-  .onEnd([]() {
-    //      Serial.println("\nEnd");
-  })
-  .onProgress([](unsigned int progress, unsigned int total) {
-    //      Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
-  })
-  .onError([](ota_error_t error) {
-    //      Serial.printf("Error[%u]: ", error);
-    //      if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
-    //      else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
-    //      else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
-    //      else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
-    //      else if (error == OTA_END_ERROR) Serial.println("End Failed");
-  });
 
   ArduinoOTA.begin();
 
@@ -96,29 +81,23 @@ int setupserver() {
 
 
 void get_adc() {
-
-  uint16_t ret[6];
-
   for (uint8_t pin = 0; pin < iocount; pin++) {
-
     pinMode(io[pin], OUTPUT);
     digitalWrite(io[pin], HIGH);
     for (uint8_t i = 0; i < 5; i++) { //5个adc
       uint16_t Max = 0, Min = 0xffff, sum = 0;
-      for (uint8_t i0 = 1; i0 < 6; i0++) { //测5次取平均
+      for (uint8_t i0 = 0; i0 < 3; i0++) { //测5次取平均
         uint16_t temp = analogRead(i);
         sum = sum + temp;
         if (Max < temp)Max = temp;
         if (Min > temp)Min = temp;
       }
-      gpio[pin][i] = (sum - Max - Min) / 3;
+      gpio[pin][i] = sum - Max - Min;
     }
     digitalWrite(io[pin], LOW);
     pinMode(io[pin], INPUT);
   }
 }
-
-int count=0;
 void sampling() {
   client.println();
   get_adc();
@@ -133,7 +112,6 @@ void sampling() {
   }
   client.print(count++);
 }
-
 void setup() {
 
   analogSetAttenuation(ADC_2_5db);
@@ -145,7 +123,7 @@ void setup() {
   pinMode(19, INPUT); pinMode(18, INPUT);
 
   pinMode(9, INPUT); pinMode(10, INPUT);
-  //pinMode(20,INPUT);pinMode(21,INPUT);
+  pinMode(20, INPUT); pinMode(21, INPUT);
   pinMode(8, INPUT); pinMode(6, INPUT); pinMode(7, INPUT);
   //  pinMode(CS,OUTPUT);pinMode(Y0,OUTPUT);digitalWrite(CS,HIGH);digitalWrite(Y0,LOW);
   //if(conn==true)ticker_getadc.attach_ms(1000/25,sampling);//125Hzsampling rate
@@ -153,21 +131,21 @@ void setup() {
 
 bool ticker1 = false;
 bool ticker2 = false;
-int mill=15000;
+int times = 1;
+int count=0;
 void loop() {
   if (millis() < 15000) ArduinoOTA.handle();
   else {
     ticker1 = true;
   }
-//  if (ticker1 == true && ticker2 != true) {
-  if (ticker1 == true ) {
-    
-//    ticker_getadc.attach_ms(1000 / 125, sampling);
-    sampling();
+  if (ticker1 == true && ticker2 != true) {
+    //  if (ticker1 == true ) {
+    ticker_getadc.attach_ms(1000 / 100, sampling);
     ticker2 = true;
+    //    if (times % 100 == 0) {
+    //      client.println("100times: ");
+    //      client.print(millis());
+    //      client.println("");
+    //    }
   }
-    if(mill<millis()-5000){
-      client.println("5s");
-      mill=millis();
-    }
-  }
+}

@@ -23,10 +23,21 @@ uint8_t io[] = {19, 18, 9, 10, 6, 7, 8, 20, 21};
 uint8_t iocount = sizeof(io);
 const char* ssid     = "Pixel_8008";
 const char* password = "lkjh123123";
-const int httpPort = 8802;
+int httpPort = 8802;
+uint32_t chipId;
+
 //8801 131 left
 //8802 103 right
 const char* host = "192.168.43.29"; // 网络服务器地址
+
+uint32_t getChipId() {
+  //0x00006c944c4e76a0 = > a0:76:4e:4c:94:6c
+  uint32_t i = ESP.getEfuseMac() >> 24;
+  return (uint32_t)  (i & 0xff) << 16
+         | (i & 0xff00)
+         | (i & 0xff0000) >> 16;
+}
+
 
 
 int setupserver() {
@@ -126,8 +137,15 @@ void sampling() {
   client.print(prt);
   count++;
 }
-void setup() {
 
+void setup() {
+  chipId = getChipId();
+  switch (chipId) {
+    case 0x6DE219:
+      httpPort = 8802;
+    default:
+      httpPort = 8801;
+  }
   analogSetAttenuation(ADC_2_5db);
   pinMode(5, OUTPUT); digitalWrite(5, HIGH); //for OTA
 

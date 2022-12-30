@@ -57,7 +57,7 @@ int setupserver() {
 
     // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
     //      Serial.println("Start updating " + type);
-  })
+  });
 
   ArduinoOTA.begin();
 
@@ -79,7 +79,7 @@ int setupserver() {
 
 }
 
-
+int adc_count=0;
 void get_adc() {
   for (uint8_t pin = 0; pin < iocount; pin++) {
     pinMode(io[pin], OUTPUT);
@@ -88,6 +88,7 @@ void get_adc() {
       uint16_t Max = 0, Min = 0xffff, sum = 0;
       for (uint8_t i0 = 0; i0 < 3; i0++) { //测5次取平均
         uint16_t temp = analogRead(i);
+        adc_count++;
         sum = sum + temp;
         if (Max < temp)Max = temp;
         if (Min > temp)Min = temp;
@@ -98,19 +99,32 @@ void get_adc() {
     pinMode(io[pin], INPUT);
   }
 }
+
+int count = 0;
 void sampling() {
-  client.println();
-  get_adc();
+  //get_adc();
+  String prt;
+  prt.reserve(2000);
   for (int i = 0; i < iocount; i++) {
-    client.println();
+    prt=prt+"\n";
+//    client.println();
     for (int i0 = 0; i0 < 5; i0++) {
-      client.print(i);
-      client.print(",");
-      client.print(gpio[i][i0]);
-      if (i0 < 4)client.print(",");
+//      client.print(i);
+//      client.print(",");
+//      client.print(gpio[i][i0]);
+//      if (i0 < 4)client.print(",");
+      prt=prt+i;
+      prt=prt+",";
+      prt=prt+String(gpio[i][i0]);
+      if (i0 < 4)prt=prt+",";
     }
   }
-  client.print(count++);
+  prt=prt+"adc_counts :\n";
+  prt=prt+String(adc_count)+"\n";
+  prt=prt+"sampings :\n";
+  prt=prt+String(count)+"\n";
+  client.print(prt);
+  count++;
 }
 void setup() {
 
@@ -132,20 +146,23 @@ void setup() {
 bool ticker1 = false;
 bool ticker2 = false;
 int times = 1;
-int count=0;
 void loop() {
   if (millis() < 15000) ArduinoOTA.handle();
   else {
     ticker1 = true;
   }
-  if (ticker1 == true && ticker2 != true) {
-    //  if (ticker1 == true ) {
-    ticker_getadc.attach_ms(1000 / 100, sampling);
-    ticker2 = true;
-    //    if (times % 100 == 0) {
-    //      client.println("100times: ");
-    //      client.print(millis());
-    //      client.println("");
-    //    }
+  //  if (ticker1 == true && ticker2 != true) {
+  //    ticker_getadc.attach_ms(12, sampling);
+  //    ticker2 = true;
+  if (ticker1 == true ) {
+    if (times % 100 == 0) {
+      String prt;
+      prt.reserve(2000);
+      prt+="100times: \n";
+      prt+=String(millis() / 1000)+"s \n";
+      client.print(prt);
+    }
+    sampling();
+    times++;
   }
 }
